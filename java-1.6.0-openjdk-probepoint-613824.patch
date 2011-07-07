@@ -1,0 +1,46 @@
+diff -up ./Makefile.am.sav ./Makefile.am
+--- ./Makefile.am.sav	2010-07-28 18:28:45.960031041 -0400
++++ ./Makefile.am	2010-07-28 18:29:16.556978698 -0400
+@@ -383,7 +383,8 @@ endif
+ 
+ if ENABLE_SYSTEMTAP
+ ICEDTEA_PATCHES += patches/icedtea-systemtap.patch \
+-	patches/systemtap-gcc-4.5.patch
++	patches/systemtap-gcc-4.5.patch \
++	patches/systemtap-alloc-size-workaround.patch
+ endif
+ 
+ if ENABLE_NSS
+diff -up ./patches/systemtap-alloc-size-workaround.patch.sav ./patches/systemtap-alloc-size-workaround.patch
+--- ./patches/systemtap-alloc-size-workaround.patch.sav	2010-07-28 18:32:06.049968521 -0400
++++ ./patches/systemtap-alloc-size-workaround.patch	2010-07-28 18:32:06.049968521 -0400
+@@ -0,0 +1,17 @@
++Generating a dwarf location expression for variable * "constant" as used
++in this probe argument triggers unforseen complications. See
++https://bugzilla.redhat.com/show_bug.cgi?id=613824
++Workaround for now by passing the size without HeapWordSize adjustment.
++See also the hotspot.object_alloc in tapset/hotspot.stp[.in].
++
++--- openjdk.orig/hotspot/src/share/vm/runtime/sharedRuntime.cpp	2010-05-18 20:00:22.130618755 +0200
+++++ openjdk/hotspot/src/share/vm/runtime/sharedRuntime.cpp	2010-07-28 22:53:23.662310007 +0200
++@@ -711,7 +711,7 @@
++   int size = o->size();
++   symbolOop name = klass->name();
++   HS_DTRACE_PROBE4(hotspot, object__alloc, get_java_tid(thread),
++-                   name->bytes(), name->utf8_length(), size * HeapWordSize);
+++                   name->bytes(), name->utf8_length(), size);
++   return 0;
++ }
++ 
+diff -up ./tapset/hotspot.stp.in.sav ./tapset/hotspot.stp.in
+--- ./tapset/hotspot.stp.in.sav	2010-07-28 18:31:21.673031133 -0400
++++ ./tapset/hotspot.stp.in	2010-07-28 18:31:49.622990568 -0400
+@@ -120,7 +120,7 @@ probe hotspot.object_alloc =
+   name = "object_alloc";
+   thread_id = $arg1;
+   class = user_string_n($arg2, $arg3);
+-  size = $arg4;
++  size = $arg4 * $HeapWordSize; // Note - systemtap-alloc-size-workaround.patch
+   probestr = sprintf("%s(thread_id=%d,class='%s',size=0x%x)",
+                      name, thread_id, class, size);
+ }

@@ -1,0 +1,12 @@
+--- configacorig	2008-08-05 10:16:04.000000000 -0400
++++ configure.ac	2008-08-05 10:16:15.000000000 -0400
+@@ -9,6 +9,9 @@
+ AC_PROG_CC
+ AC_PROG_CXX
+ 
++ALT_OPT_CFLAGS="$(rpm --eval '%optflags' | sed -e 's/-mtune=generic//1')"
++AC_SUBST(ALT_OPT_CFLAGS)
++
+ FIND_TOOL([MAKE], [make])
+ FIND_TOOL([GZIP], [gzip])
+ FIND_TOOL([ANT], [ant])
