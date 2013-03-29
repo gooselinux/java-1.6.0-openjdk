@@ -1,0 +1,20 @@
+--- openjdk/hotspot/build/linux/makefiles/saproc.make_back	2009-12-14 13:35:46.000000000 +0100
++++ openjdk/hotspot/make/linux/makefiles/saproc.make	2009-12-14 13:36:47.000000000 +0100
+@@ -67,6 +67,7 @@
+ 	           -I$(BOOT_JAVA_HOME)/include/$(Platform_os_family)    \
+ 	           $(SASRCFILES)                                        \
+ 	           $(SA_LFLAGS)                                         \
++		   -g							\
+ 	           -o $@                                                \
+ 	           -lthread_db
+ 
+--- openjdk/hotspot/build/linux/makefiles/jsig.make_back	2009-12-14 13:34:56.000000000 +0100
++++ openjdk/hotspot/make/linux/makefiles/jsig.make	2009-12-14 13:35:31.000000000 +0100
+@@ -44,6 +44,7 @@
+ $(LIBJSIG): $(JSIGSRCDIR)/jsig.c $(LIBJSIG_MAPFILE)
+ 	@echo Making signal interposition lib...
+ 	$(QUIETLY) $(CC) $(SYMFLAG) $(ARCHFLAG) $(SHARED_FLAG) $(PICFLAG) \
++			 -g						  \
+                          $(LFLAGS_JSIG) -o $@ $< -ldl
+ 
+ install_jsig: $(LIBJSIG)
