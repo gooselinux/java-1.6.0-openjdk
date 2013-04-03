@@ -9,7 +9,7 @@
 # If runtests is 0 test suites will not be run.
 %define runtests 0
 
-%define icedteaver 1.7.9
+%define icedteaver 1.7.10
 %define icedteasnapshot %{nil}
 %define openjdkver b17
 %define openjdkdate 14_oct_2009
@@ -173,7 +173,7 @@
 
 Name:    java-%{javaver}-%{origin}
 Version: %{javaver}.%{buildver}
-Release: 1.36.%{openjdkver}%{?dist}
+Release: 1.39.%{openjdkver}%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons,
 # and this change was brought into RHEL-4.  java-1.5.0-ibm packages
 # also included the epoch in their virtual provides.  This created a
@@ -922,6 +922,14 @@ exit 0
 
 
 %changelog
+* Mon Feb 14 2011 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.39.b17
+- respin of  IcedTea6 1.7.10
+- Resolves: rhbz#676276
+
+* Fri Feb 11 2011 Deepak Bhole <dbhole@redhat.com> - 1.6.0.0-1.37.b17
+- Updated to IcedTea6 1.7.10
+- Resolves: rhbz#676276
+
 * Thu Feb 10 2011 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.36.b17
 - removed plugin. How it comes in?!
 - Resolves: rhbz#676295
