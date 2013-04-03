@@ -3,16 +3,13 @@
 # java-1.6.0-openjdk-devel.
 %define gcjbootstrap 0
 
-#remove with %ifdef in postun
-%define NO_PLUGIN 1
-
 # If debug is 1, IcedTea is built with all debug info present.
 %define debug 0
 
 # If runtests is 0 test suites will not be run.
 %define runtests 0
 
-%define icedteaver 1.7.5
+%define icedteaver 1.7.9
 %define icedteasnapshot %{nil}
 %define openjdkver b17
 %define openjdkdate 14_oct_2009
@@ -176,7 +173,7 @@
 
 Name:    java-%{javaver}-%{origin}
 Version: %{javaver}.%{buildver}
-Release: 1.31.%{openjdkver}%{?dist}
+Release: 1.36.%{openjdkver}%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons,
 # and this change was brought into RHEL-4.  java-1.5.0-ibm packages
 # also included the epoch in their virtual provides.  This created a
@@ -210,7 +207,8 @@ Patch2:   java-1.6.0-openjdk-java-access-bridge-idlj.patch
 Patch3:	  java-1.6.0-openjdk-java-access-bridge-security.patch
 Patch4:   java-1.6.0-openjdk-accessible-toolkit.patch
 Patch5:   java-1.6.0-openjdk-debugdocs.patch
-Patch6:   %{name}-debuginfo.patch
+#Patch6:   %{name}-probepoint-613824.patch
+
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires: autoconf
@@ -253,10 +251,10 @@ BuildRequires: libbonobo-devel
 BuildRequires: pkgconfig >= 0.9.0
 BuildRequires: xorg-x11-utils
 # IcedTeaPlugin build requirements.
-#BuildRequires: gecko-devel
-#BuildRequires: glib2-devel
-#BuildRequires: gtk2-devel
-#BuildRequires: xulrunner-devel
+BuildRequires: gecko-devel
+BuildRequires: glib2-devel
+BuildRequires: gtk2-devel
+BuildRequires: xulrunner-devel
 # PulseAudio build requirements.
 BuildRequires: pulseaudio-libs-devel >= 0.9.11
 BuildRequires: pulseaudio >= 0.9.11
@@ -312,10 +310,6 @@ Provides: jdbc-stdext = 3.0
 Provides: java-sasl = %{epoch}:%{version}
 Provides: java-fonts = %{epoch}:%{version}
 
-
-Obsoletes: java-1.6.0-openjdk-plugin <= %{epoch}:%{version}-%{release}
-
-
 %description
 The OpenJDK runtime environment.
 
@@ -338,7 +332,6 @@ Provides: java-sdk = %{epoch}:%{javaver}
 Provides: java-%{javaver}-devel = %{epoch}:%{version}
 Provides: java-devel-%{origin} = %{epoch}:%{version}
 Provides: java-devel = %{epoch}:%{javaver}
-
 
 %description devel
 The OpenJDK development tools.
@@ -377,41 +370,16 @@ Provides: java-%{javaver}-javadoc = %{epoch}:%{version}-%{release}
 %description javadoc
 The OpenJDK API documentation.
 
-#%package plugin
-#Summary: OpenJDK Web Browser Plugin
-#Group:   Applications/Internet
-#
-#Requires: %{name} = %{epoch}:%{version}-%{release}
-#Requires: %{syslibdir}/mozilla/plugins
-## Post requires alternatives to install plugin alternative.
-#Requires(post):   %{_sbindir}/alternatives
-## Postun requires alternatives to uninstall plugin alternative.
-#Requires(postun): %{_sbindir}/alternatives
-#
-## java-1.6.0-openjdk-plugin replaces java-1.7.0-icedtea-plugin.
-##Provides: java-1.7.0-icedtea-plugin = 0:1.7.0.0-0.999
-##Obsoletes: java-1.7.0-icedtea-plugin < 0:1.7.0.0-0.999
-#
-## Standard JPackage plugin provides.
-#Provides: java-plugin = %{javaver}
-#Provides: java-%{javaver}-plugin = %{epoch}:%{version}
-#
-#%description plugin
-#The OpenJDK web browser plugin.
-
 %prep
 %setup -q -n icedtea6-%{icedteaver}
 %setup -q -n icedtea6-%{icedteaver} -T -D -a 5
 %setup -q -n icedtea6-%{icedteaver} -T -D -a 2
 %patch0
+#%patch6
 cp %{SOURCE4} .
 cp %{SOURCE6} .
 
 %build
-# How many cpu's do we have?
-export NUM_PROC=`/usr/bin/getconf _NPROCESSORS_ONLN 2> /dev/null || :`
-export NUM_PROC=${NUM_PROC:-1}
-
 # Build IcedTea and OpenJDK.
 %ifarch sparc64 alpha
 export ARCH_DATA_MODEL=64
@@ -423,16 +391,11 @@ export CFLAGS="$CFLAGS -mieee"
 ./configure %{icedteaopt} --with-openjdk-src-zip=%{SOURCE1} \
   --with-pkgversion=rhel-%{release}-%{_arch} --enable-pulse-java \
   --with-abs-install-dir=%{_jvmdir}/%{sdkdir} \
-  --with-rhino --disable-npplugin \
-  --with-parallel-jobs=$NUM_PROC
+  --with-rhino --disable-webstart --disable-npplugin
 make patch
 patch -l -p0 < %{PATCH3}
 patch -l -p0 < %{PATCH4}
-
-%if %{debug}
 patch -l -p0 < %{PATCH5}
-patch -l -p0 < %{PATCH6}
-%endif
 
 %if %{gcjbootstrap}
 make stamps/patch-ecj.stamp
@@ -595,7 +558,7 @@ for s in 16 24 32 48 ; do
 done
 
 # Install desktop files.
-install -d -m 755 $RPM_BUILD_ROOT%{_datadir}/{applications,pixmaps}
+#install -d -m 755 $RPM_BUILD_ROOT%{_datadir}/{applications,pixmaps}
 #cp javaws.png $RPM_BUILD_ROOT%{_datadir}/pixmaps
 #desktop-file-install --vendor ''\
 #  --dir $RPM_BUILD_ROOT%{_datadir}/applications javaws.desktop
@@ -691,7 +654,7 @@ alternatives \
   jre_%{javaver}_exports %{_jvmjardir}/%{jrelnk}
 
 # Update for jnlp handling.
-update-desktop-database %{_datadir}/applications &> /dev/null || :
+#update-desktop-database %{_datadir}/applications &> /dev/null || :
 
 touch --no-create %{_datadir}/icons/hicolor
 if [ -x %{_bindir}/gtk-update-icon-cache ] ; then
@@ -709,7 +672,7 @@ then
 fi
 
 # Update for jnlp handling.
-update-desktop-database %{_datadir}/applications &> /dev/null || :
+#update-desktop-database %{_datadir}/applications &> /dev/null || :
 
 touch --no-create %{_datadir}/icons/hicolor
 if [ -x %{_bindir}/gtk-update-icon-cache ] ; then
@@ -848,10 +811,6 @@ fi
 exit 0
 
 
-%if %{NO_PLUGIN}
-#garbage
-%endif
-
 %files -f %{name}.files
 %defattr(-,root,root,-)
 %doc %{buildoutputdir}/j2sdk-image/jre/ASSEMBLY_EXCEPTION
@@ -885,11 +844,8 @@ exit 0
 %{_mandir}/man1/unpack200-%{name}.1*
 #%{_datadir}/pixmaps/javaws.png
 #%{_datadir}/applications/javaws.desktop
-%exclude  %{_jvmdir}/%{jredir}/bin/javaws
 
 %files devel
-%exclude  %{_jvmdir}/%{sdkdir}/bin/javaws
-
 %defattr(-,root,root,-)
 %doc %{buildoutputdir}/j2sdk-image/ASSEMBLY_EXCEPTION
 %doc %{buildoutputdir}/j2sdk-image/LICENSE
@@ -964,57 +920,21 @@ exit 0
 %defattr(-,root,root,-)
 %doc %{_javadocdir}/%{name}
 
-#%files plugin
-#%defattr(-,root,root,-)
-#%{_jvmdir}/%{jredir}/lib/%{archinstall}/IcedTeaNPPlugin.so
 
 %changelog
-* Mon Nov 1 2010 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.31.b17
-- excluded bin/javaws files
-		exclude  %{_jvmdir}/%{jredir}/bin/javaws
-		files devel
-		exclude  %{_jvmdir}/%{sdkdir}/bin/javaws
+* Thu Feb 10 2011 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.36.b17
+- removed plugin. How it comes in?!
+- Resolves: rhbz#676295
 
-- garbage removed to separated file
-- Resolves: rhbz#639954
+* Thu Feb 10 2011 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.33.b17
+- bumped release number, it was accidentaly reduced, and now lower version then last one was released.
+- Resolves: rhbz#676295
 
-* Wed Oct 27 2010 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.30.b17
-- javaws again removed, sorry for confusion (QA!-)
-- Resolves: rhbz#639954
+* Wed Feb 8 2011 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.22.b17
+- Updated to 1.7.9 tarball
+- removed patch6, fixed upstrream
+- Resolves: rhbz#676295
 
-
-* Wed Oct 27 2010 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.28.b17
-- removed garbage from plugin postun
-- again added javaws
-- Resolves: rhbz#639954
-
-
-* Mon Oct 20 2010 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.27.b17
-- obsoleting plugin, aded versioning
-- Resolves: rhbz#639954
-
-* Mon Oct 20 2010 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.26.b17
-- obsoleting plugin
-- Resolves: rhbz#639954
-
-* Fri Oct 15 2010 Jiri Vanek <jvanek@redhat.com> - 1.6.0.0-1.25.b17
--  obsoleting plugin
-
-
-* Thu Oct 14 2010 Deepak Bhole <dbhole@redhat.com> - 1.6.0.0-1.24.b17
-- Resolves: bz643095
-- Disable Web Plugin and Webstart
-
-* Tue Oct 12 2010 Deepak Bhole <dbhole@redhat.com> - 1.6.0.0-1.23.b17
-- Updated 1.7.5 tarball (contains additional security fixes)
-- Resolves: bz639954
-
-* Tue Oct 05 2010 Deepak Bhole <dbhole@redhat.com> - 1.6.0.0-1.22.b17
-- Update to IcedTea 1.7.5
-- Import debuginfo patch from el5
-- Parallelize build
-- Removed systemtap probepoint patch (now upstream)
-- Resolves: bz#639954
 
 * Tue Jul 27 2010 Deepak Bhole <dbhole@redhat.com> - 1.6.0.0-1.21.b17
 - Updated to IcedTea 1.7.4
